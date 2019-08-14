@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  server:
+   image: server
+   ports:
+     - 80
+   environment:
+     - SERVICE_PORTS=80
+   deploy:
+     replicas: 2
+     update_config:
+       parallelism: 2
+       delay: 10s
+     restart_policy:
+       condition: on-failure
+       max_attempts: 1
+       window: 30s
+   networks:
+     - web
+
+  proxy:
+    image: server
+    depends_on:
+      - server
+    environment:
+      - BALANCE=leastconn
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 80:80
+    networks:
+      - web
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  web:
+    driver: overlay
